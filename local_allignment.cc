@@ -1,8 +1,9 @@
 #include <algorithm>
-#include <cstdbool>
+#include <stdbool.h>
 #include <string>
 #include <utility>
 #include <fstream>
+#include <iostream>
 
 #define NAME_MAX_LEN 64
 
@@ -149,11 +150,11 @@ pair<string, string> FindAnswer(ScoreMatrix* t, DNAdata* data1, DNAdata* data2) 
 
 int GetFileData(string filepath, DNAdata *& data) {
 	fstream file;
-	file.open(filepath, fstream::in);
-
+	file.open(filepath.c_str(), fstream::in);
+	cout << "\topen " + filepath + " success\n";
 	data = new DNAdata();
 	getline(file, data->name);
-
+	cout << "\tname : " + data->name + "\n";
 	string temp;
 	while (!file.eof()) {
 		getline(file, temp);
@@ -161,12 +162,13 @@ int GetFileData(string filepath, DNAdata *& data) {
 	}
 	data->dna_len = (data->dna).length();
 	file.close();
+	cout << data->dna << "\n\nstrlen==" << data->dna_len << "\n\n";
 	return 0;
 }
 
-int SaveData(string filepath, string header_string, pair<string, string> data) {
+int SaveData(string& filepath, string& header_string, pair<string, string>& data) {
 	fstream file;
-	file.open(filepath, fstream::out);
+	file.open(filepath.c_str(), fstream::out);
 
 	file << header_string;
 	file << data.first << "\n\n" << data.second << "\n";
@@ -185,22 +187,30 @@ int main(int argc, char** argv) {
 	//fopen("find_this_path", "w");
 	
 	// Get Input and fill s1, s2
-	//filepath1 = argv[1];
-	//filepath2 = argv[2];
-	//resultname = argv[3];
-	filepath1 = "file1.txt";
-	filepath2 = "file2.txt";
-	resultname = "file3.txt";
-
+	if(3 < argc){
+		filepath1 = argv[1];
+		filepath2 = argv[2];
+		resultname = argv[3];
+		cout << "using name " + filepath1 + ", " + filepath2 + ", " + resultname + "\n";
+	} else {
+		cout << "not enough arguments! I will use file1~3.txt instead";
+		filepath1 = "file1.txt";
+		filepath2 = "file2.txt";
+		resultname = "file3.txt";
+	}
+	
+	
+	cout << "start reading\n";
 	GetFileData(filepath1, data1);
 	GetFileData(filepath2, data2);
-
+	cout << "finish reading\nstart dynamic algorithm\n";
 	// fill matrix with dynamic algorithm
 	ScoreMatrix* matrix = BulidLocalAlignmentMatrix(data1, data2);
-
+	cout << "fin dynamic building\nstart findingmax\n";
 	// + 그 중에 점수 최대점 찾음. 백트랙하면서 추적, 공통부분 추출
 	pair<string, string> substrings = FindAnswer(matrix, data1, data2);
-	
+	cout << "fin finding max\n\n";
+	cout << substrings.first << "\n\n" << substrings.second << "\n\n";
 	// result data를 포멧에 맞춰서 예쁘게 저장
 	string header = "DB : " + filepath1 + "\nQuery : " + filepath2 + "\n\nAlignment\n";
 	SaveData(resultname, header, substrings);
