@@ -78,12 +78,13 @@ ScoreMatrix* BulidLocalAlignmentMatrix(DNAdata* data1, DNAdata* data2) {
 	int i, j;
 	for (i = 0; i < t->l1; i++) {
 		for (j = 0; j < t->l2; j++) {
-			bool match = (d1[i] == d2[j]);						// does data match here?
-			int ori	= match ? SCORE_MAT : SCORE_FAL;			// 여기서 시작하는 경우 original
-			int lu = t->Get(i - 1, j - 1) + ori;				// left + up 대각선방향
-			int llu = t->Get(i - 2, j - 1) + SCORE_GAP + ori;	// left + left + up 대각선방향
-			int luu = t->Get(i - 1, j - 2) + SCORE_GAP + ori;	// left + up + up 대각선방향
-			int maximum = max(max(max(ori, lu), llu), luu);
+			bool match = (d1[i] == d2[j]);													// does data match here?
+			int ori	= 0;																	// 여기서 시작하는 경우 original
+			int lu = t->Get(i - 1, j - 1);													// left + up 대각선방향
+			int l = t->Get(i - 1, j) + SCORE_GAP - (d1[i-1]==d2[j]? SCORE_MAT : SCORE_FAL);	// left	방향
+			int u = t->Get(i, j - 1) + SCORE_GAP - (d1[i]==d2[j-1]? SCORE_MAT : SCORE_FAL);	// up	방향
+			int maximum = max(max(max(ori, lu), l), u);
+			maximum += match? SCORE_MAT : SCORE_FAL;										// + match here? +5 || -4
 			t->Set(i, j, maximum);									//t[i][j] = max
 		}
 	}
@@ -93,10 +94,12 @@ pair<string, string> FindAnswer(ScoreMatrix* t, DNAdata* data1, DNAdata* data2) 
 	int i, j;
 	int maximum = NO_DATA;
 	int x = 0, y = 0;
-
+	int match=0, gap=0, mismatch=0;
+	cout << "start llop\n";
 	for (i = 0; i < t->l1; i++) {
 		for (j = 0; j < t->l2; j++) {
 			if (maximum < t->Get(i, j)) {
+				cout << "replace (" << x << ", " << y << ")\n";
 				maximum = t->Get(i, j);	// t[x][y] is the maximum
 				x = i;
 				y = j;
@@ -107,43 +110,49 @@ pair<string, string> FindAnswer(ScoreMatrix* t, DNAdata* data1, DNAdata* data2) 
 	string& d1 = data1->dna;
 	string& d2 = data2->dna;
 	string s1 = "", s2 = "";
-
+	cout << "(" + x << ", " + y <<")\n";
+	cout << "start loop\n";;
 	while (true) {
+		cout << "(" + x << ", " + y <<")";
 		s1 += d1[x];
 		s2 += d2[y];	// d1[x] == d2[y] 둘다 똑같은거임
 
 		// 근원지 추적.
-		int ori = 0;								// 여기서 시작한 경우
-		int lu = t->Get(x - 1, y - 1);				// left + up 대각선방향
-		int llu = t->Get(x - 2, y - 1) + SCORE_GAP;	// left + left + up 대각선방향
-		int luu = t->Get(x - 1, y - 2) + SCORE_GAP;	// left + up + up 대각선방향
+		int ori	= 0;																	// 여기서 시작하는 경우 original
+		int lu = t->Get(i - 1, j - 1);													// left + up 대각선방향
+		int l = t->Get(i - 1, j) + SCORE_GAP - (d1[i-1]==d2[j]? SCORE_MAT : SCORE_FAL);	// left	방향
+		int u = t->Get(i, j - 1) + SCORE_GAP - (d1[i]==d2[j-1]? SCORE_MAT : SCORE_FAL);	// up	방향
+		int maximum = max(max(max(ori, lu), l), u);
 		
-		maximum = max(max(max(ori, lu), llu), luu);
+		maximum = max(max(max(ori, lu), l), u);
 
-		if (maximum == ori) {				//match
-			break;
-		} else {
+		if (maximum == lu){
+			if(d1[x] == d2[y]){
+				match ++;
+			} else {
+				mismatch++;
+			}		
+			s1 += d1[x];
+			s2 += d2[y];
 			x--;
 			y--;
-			if (maximum == lu) {			//mismatch ( fail )
-				continue;
-			} else if (maximum == llu) {	//gap
-				s1 += d1[x];
-				s2 += '-';
-				x--;
-			} else if (maximum == luu) {	//gap
-				s1 += '-';
-				s2 += d2[y];
-				y--;
-			} else {
-				//error
-			}
-			t->Get(0, 0);
+		} else if (maximum = u){
+			gap ++;
+			y--;
+			s2 += '-';
+		} else if (maximum = l){
+			gap ++;
+			x--;
+			s1 += '-';
+		} else if (maximum == ori) {				
+			break;
 		}
 	}
 	
 	reverse(s1.begin(), s1.end());
 	reverse(s2.begin(), s2.end());
+
+	cout <<"total score : " << (match * SCORE_MAT + mismatch * SCORE_FAL + gap* SCORE_GAP) << "\tmatch : " << match << "\tmismatch : " << mismatch << "\tgap : " << gap << "\n"; 
 
 	return make_pair(s1, s2);
 }
@@ -158,6 +167,24 @@ int GetFileData(string filepath, DNAdata *& data) {
 	string temp;
 	while (!file.eof()) {
 		getline(file, temp);
+		bool change = true;
+		while(change){
+			switch(temp[temp.length() - 1]){
+				case 'A':
+				case 'T':
+				case 'C':
+				case 'G':
+					change = false;
+					break;
+				default:
+					if(temp.length() == 0){
+						change = false;
+						break;
+					}
+					temp= temp.substr(0, temp.length()-2);
+			}
+		}
+		
 		data->dna.append(temp);
 	}
 	data->dna_len = (data->dna).length();
