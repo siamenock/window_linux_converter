@@ -1,7 +1,7 @@
 #ifndef _BIGINT_H_
 #define _BIGINT_H_
 
-#pragma warning(disable:4996)
+//#pragma warning(disable:4996)
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -11,10 +11,10 @@
 #include <math.h>
 
 
-#define TEST 0
-#define NOT_TEST !TEST
+//#define TEST 0
+//#define NOT_TEST !TEST
 
-#define MAX 70
+#define MAX 150
 #define POSITIVE false
 #define NEGATIVE true
 #define BORROW 1
@@ -49,6 +49,7 @@ BigInt powB(BigInt* i1, BigInt* i2);   // ^
 void leftShift(BigInt* i1);
 void rightShift(BigInt* i1);
 
-char* btoaDebug(BigInt* i);
+//char* btoaDebug(BigInt* i);
 
 #endif // !1
+
